@@ -18,9 +18,6 @@ intents.reactions = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-#CONFIGURE THIS
-waiting_channelid = 1410768045231702077 #this is the channel that people wait in
-target_channelid = 762150180409180170 #this is the channel that they get moved to after someone joins
 def load_targets(): #reads the .json file with the member list
     try:
         with open("targets.json", "r") as f:
@@ -28,14 +25,40 @@ def load_targets(): #reads the .json file with the member list
     except (FileNotFoundError, json.JSONDecodeError):
         return set()   # start empty if file doesn’t exist or is broken
 
-def save_targets(targets): #saves the targets to the .json
-    with open("targets.json", "w") as f:
-        json.dump(list(targets), f)  # save IDs back to JSON
-target_members = load_targets()
+def load_config():
+    try:
+        with open("config.json", "r") as f:
+            return json.load(f)   # load as dict
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"targets": [], "optin_message_id": None}  # default values
+
+def save_config(config):
+    with open("config.json", "w") as f:
+        json.dump(config, f, indent=4)
+config = load_config()
 
 @bot.event #happens when the bot boots up, needed.
 async def on_ready():
-    print(f" {bot.user.name} set up successfully with {len(target_members)} members")
+    print(f" {bot.user.name} set up successfully with {len(config["targets"])} members")
+
+@bot.command()
+async def wchannel(ctx, *, wchannel: int):#function to add the waiting channel from discord
+    try:
+        config["waiting_channelid"] = wchannel
+        save_config(config)
+        await ctx.send(f"✅ Waiting channel updated to `{wchannel}`")
+    except:
+        print("error with waiting channel")
+
+
+@bot.command()
+async def tchannel(ctx, *, tchannel: int): #function to add the target channel from discord
+    try:
+        config["target_channelid"] = tchannel
+        save_config(config)
+        await ctx.send(f"✅ Waiting channel updated to `{tchannel}`")
+    except:
+        print("error with target channel")
 
 @bot.command()
 async def setup(ctx): #!setup sends an embed with two reactions to monitor in the next event for adding people to the .json file
@@ -47,28 +70,27 @@ async def setup(ctx): #!setup sends an embed with two reactions to monitor in th
     msg = await ctx.send(embed=embed)
     await msg.add_reaction("✅")
     await msg.add_reaction("❌")
-    with open("optinmessageid.json", "w") as f:
-        json.dump(msg.id, f)
-        print(f"bot:{msg.id}, user: {ctx.msg.id}")
+    config["optin_message_id"] = msg.id
+    save_config(config)
 
 
 @bot.event
 async def on_voice_state_update(member, before, after): #checks if any member joins the waiting channel with the target role and then moves them to target channel
+    waiting_channel = member.guild.get_channel(config['waiting_channelid'])
+    target_channel = member.guild.get_channel(config['target_channelid'])
     if before.channel is None and after.channel is not None: #checks if anyone joined the channel
-        if after.channel.id == waiting_channelid:
+        if after.channel.id == config["waiting_channelid"]:
             print("waiting good")
             user_id = member.id
-            if user_id in target_members:
+            if user_id in config["targets"] and len(waiting_channel.members) <= 1 :
                 print("user id good")
-                for targetid in target_members: #goes through the target members list and sends them a dm
+                for targetid in config["targets"]: #goes through the target members list and sends them a dm
                      print("for loop (1) good")
                      if targetid != member.id:
                         user = await bot.fetch_user(targetid)
                         await user.send(f"<@{user_id}> is now waiting for you in the voice channel!")
                      else:
                          continue
-    waiting_channel = member.guild.get_channel(waiting_channelid)
-    target_channel = member.guild.get_channel(target_channelid)
     if waiting_channel.members and len(waiting_channel.members) > 1: #checks if the channel has more than one member and if the channel does it moves them all to the target channel
         print ("len check good")
         for waiting_member in list(waiting_channel.members):
@@ -79,40 +101,46 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
             except Exception as e:
                 print("Move error:", e)
 
-
-
-
 @bot.event
-async def on_raw_reaction_add(payload):
+async def on_raw_reaction_add(payload): #adds and removes members from the setup message
     try:
             print(f"[REACTION] user={payload.user_id}, emoji={payload.emoji}, message={payload.message_id}")
-            with open("optinmessageid.json", "r") as f:
-                optin_message_id = int(json.load(f))
 
-            if payload.message_id != int(optin_message_id):
-                print(f"reaction on the non opt in message, opt:{payload.message_id}, msg:{optin_message_id}")
-                return
-            if payload.user_id == bot.user.id:
+            if payload.user_id == bot.user.id: #avoids the bot's id from getting added
                 print("bot reaction detected")
                 return
-            if str(payload.emoji) == "✅":
+
+            if payload.message_id != config["optin_message_id"]: #checks if the optin message is the one with the reaction event
+                print(f"reaction on the non opt in message, opt:{payload.message_id}, msg:{config['optin_message_id']}")
+                return
+
+            if str(payload.emoji) == "✅": #adds members when they react
                 print("✅ reaction detected")
-                if payload.user_id not in target_members:
-                    target_members.add(payload.user_id)
-                    save_targets(target_members)
-                    print(f"<{payload.user_id}> successfully saved in list")
+                if payload.user_id not in config["targets"]:
+                    config["targets"].append(payload.user_id)
+                    save_config(config)
+                    user = await bot.fetch_user(payload.user_id)
+                    await user.send("You have successfully been added to the list")
+                    print(f"<{payload.user_id}> successfully saved to the list")
                 else:
+                    user = await bot.fetch_user(payload.user_id)
+                    await user.send("You are already in the list")
                     print(f"{payload.user_id} is already in the targets list")
-            if str(payload.emoji) == "❌":
-                if payload.user_id in target_members:
-                    target_members.remove(payload.user_id)
-                    save_targets(target_members)
+
+            if str(payload.emoji) == "❌": #removes members by reaction
+                if payload.user_id in config["targets"]:
+                    config["targets"].remove(payload.user_id)
+                    save_config(config)
+                    user = await bot.fetch_user(payload.user_id)
+                    await user.send("You have successfully been removed from the list")
                     print(f"<{payload.user_id}> deleted from targets")
                 else:
+                    user = await bot.fetch_user(payload.user_id)
+                    await user.send("You are not in the list")
                     print(f"<{payload.user_id}> is not in targets")
+
     except Exception:
         import traceback
         traceback.print_exc()
-
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
