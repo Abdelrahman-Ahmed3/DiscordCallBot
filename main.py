@@ -21,7 +21,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 def load_targets(): #reads the .json file with the member list
     try:
         with open("targets.json", "r") as f:
-            return set(json.load(f))   # IDs in a Python set
+            return set(json.load(f))
     except (FileNotFoundError, json.JSONDecodeError):
         return set()   # start empty if file doesn’t exist or is broken
 
@@ -88,7 +88,7 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
                      print("for loop (1) good")
                      if targetid != member.id:
                         user = await bot.fetch_user(targetid)
-                        await user.send(f"<@{user_id}> is now waiting for you in the voice channel!")
+                        await user.send(f"<@{user_id}> is now waiting for you in <#{config['waiting_channelid']}>")
                      else:
                          continue
     if waiting_channel.members and len(waiting_channel.members) > 1: #checks if the channel has more than one member and if the channel does it moves them all to the target channel
