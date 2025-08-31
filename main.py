@@ -4,7 +4,7 @@ import logging
 from dotenv import load_dotenv
 import os
 import json
-
+import webserver
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 
@@ -143,4 +143,5 @@ async def on_raw_reaction_add(payload): #adds and removes members from the setup
         import traceback
         traceback.print_exc()
 
+webserver.keep_alive()
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
