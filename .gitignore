@@ -13,3 +13,9 @@ __pycache__/
 # IDE settings
 .idea/
 .vscode/
+
+#JSON file
+targets.json
+
+#discord logs
+discord.log

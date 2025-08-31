@@ -38,7 +38,7 @@ async def on_ready():
     print(f" {bot.user.name} set up successfully with {len(target_members)} members")
 
 @bot.command()
-async def setup_optin(ctx):
+async def setup(ctx): #!setup sends an embed with two reactions to monitor in the next event for adding people to the .json file
     embed = discord.Embed(
         title="Voice Notification Opt-in",
         description="React with ✅ to get notified when someone is waiting.\nReact with ❌ to stop notifications.",
@@ -48,7 +48,8 @@ async def setup_optin(ctx):
     await msg.add_reaction("✅")
     await msg.add_reaction("❌")
     with open("optinmessageid.json", "w") as f:
-        json.dump(ctx.message.id, f)
+        json.dump(msg.id, f)
+        print(f"bot:{msg.id}, user: {ctx.msg.id}")
 
 
 @bot.event
@@ -78,66 +79,40 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
             except Exception as e:
                 print("Move error:", e)
 
-@bot.command
-async def setup_optin(ctx): #!setup_optin sends an embed with two reactions to monitor in the next event for adding people to the .json file
-    embed = discord.Embed(
-        title="Voice Notification Opt-in",
-        description="React with ✅ to get notified when someone is waiting.\nReact with ❌ to stop notifications.",
-        color=discord.Color.blue()
-    )
-    msg = await ctx.send(embed=embed)
-    await msg.add_reaction("✅")
-    await msg.add_reaction("❌")
-    # save message ID to a file so we can use it later
-    with open("optin.json", "w") as f:
-        json.dump({"optin_message_id": msg.id}, f)
+
 
 
 @bot.event
 async def on_raw_reaction_add(payload):
     try:
-        print("RAW REACTION EVENT FIRED")
-        print("payload:", payload)
-        print("guild:", payload.guild_id,
-              "channel:", payload.channel_id,
-              "message:", payload.message_id,
-              "user:", payload.user_id,
-              "emoji:", payload.emoji)
+            print(f"[REACTION] user={payload.user_id}, emoji={payload.emoji}, message={payload.message_id}")
+            with open("optinmessageid.json", "r") as f:
+                optin_message_id = int(json.load(f))
+
+            if payload.message_id != int(optin_message_id):
+                print(f"reaction on the non opt in message, opt:{payload.message_id}, msg:{optin_message_id}")
+                return
+            if payload.user_id == bot.user.id:
+                print("bot reaction detected")
+                return
+            if str(payload.emoji) == "✅":
+                print("✅ reaction detected")
+                if payload.user_id not in target_members:
+                    target_members.add(payload.user_id)
+                    save_targets(target_members)
+                    print(f"<{payload.user_id}> successfully saved in list")
+                else:
+                    print(f"{payload.user_id} is already in the targets list")
+            if str(payload.emoji) == "❌":
+                if payload.user_id in target_members:
+                    target_members.remove(payload.user_id)
+                    save_targets(target_members)
+                    print(f"<{payload.user_id}> deleted from targets")
+                else:
+                    print(f"<{payload.user_id}> is not in targets")
     except Exception:
         import traceback
         traceback.print_exc()
-
-
-
-@bot.event
-async def on_raw_reaction_add(payload):
-    print("Reaction detected:", payload.emoji, "from", payload.user_id)
-    with open("optin.json", "r") as f:
-        optin_message_id = json.load(f)["optinmessageid"]
-    with open("targets.json", "r") as f:
-        data = json.load(f)
-    # ignore the bot's own reactions
-    #if payload.user_id == bot.user.id:
-        #return
-    # check it's the optin message
-
-    #if payload.message_id != int(optin_message_id):
-        #print("Payload message:", payload.message_id, "Opt-in message:", optin_message_id)
-        #return
-    if str(payload.emoji) == "✅":
-        print("Reaction detected:", payload.emoji, "from", payload.user_id)
-        if payload.user_id not in data["targets"]:  # avoid duplicates
-            print("check for not in data works")
-            data["targets"].append(payload.user_id)
-            with open ("targets.json", "w") as f:
-                print("Updated targets:", data)
-                json.dump(data, f)
-
-    elif str(payload.emoji) == "❌":
-        if payload.user_id in data["targets"]:
-            data["targets"].remove(payload.user_id)
-            with open ("targets.json", "w") as f:
-                json.dump(data, f)
 
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
