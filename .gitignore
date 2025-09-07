@@ -15,7 +15,7 @@ __pycache__/
 .vscode/
 
 #JSON file
-
+config.json
 
 #discord logs
 discord.log
