@@ -78,19 +78,18 @@ async def setup(ctx): #!setup sends an embed with two reactions to monitor in th
 async def on_voice_state_update(member, before, after): #checks if any member joins the waiting channel with the target role and then moves them to target channel
     waiting_channel = member.guild.get_channel(config['waiting_channelid'])
     target_channel = member.guild.get_channel(config['target_channelid'])
-    if before.channel is None and after.channel is not None: #checks if anyone joined the channel
-        if after.channel.id == config["waiting_channelid"]:
-            print("waiting good")
-            user_id = member.id
-            if user_id in config["targets"] and len(waiting_channel.members) <= 1 :
-                print("user id good")
-                for targetid in config["targets"]: #goes through the target members list and sends them a dm
-                     print("for loop (1) good")
-                     if targetid != member.id:
-                        user = await bot.fetch_user(targetid)
-                        await user.send(f"<@{user_id}> is now waiting for you in <#{config['waiting_channelid']}>")
-                     else:
-                         continue
+    if after.channel and after.channel.id == config["waiting_channelid"] and before.channel != after.channel:
+        print("waiting good")
+        user_id = member.id
+        if user_id in config["targets"] and len(waiting_channel.members) <= 1 :
+            print("user id good")
+            for targetid in config["targets"]: #goes through the target members list and sends them a dm
+                 print("for loop (1) good")
+                 if targetid != member.id:
+                    user = await bot.fetch_user(targetid)
+                    await user.send(f"<@{user_id}> is now waiting for you in <#{config['waiting_channelid']}>")
+                 else:
+                     continue
     if waiting_channel.members and len(waiting_channel.members) > 1: #checks if the channel has more than one member and if the channel does it moves them all to the target channel
         print ("len check good")
         for waiting_member in list(waiting_channel.members):
