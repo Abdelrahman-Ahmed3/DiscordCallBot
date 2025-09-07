@@ -18,19 +18,20 @@ intents.reactions = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-def load_targets(): #reads the .json file with the member list
-    try:
-        with open("targets.json", "r") as f:
-            return set(json.load(f))
-    except (FileNotFoundError, json.JSONDecodeError):
-        return set()   # start empty if file doesn’t exist or is broken
-
 def load_config():
+    default_config = {
+        "waiting_channelid": None,
+        "target_channelid": None,
+        "targets": [],
+        "optin_message_id": None
+    }
+
     try:
         with open("config.json", "r") as f:
             return json.load(f)   # load as dict
     except (FileNotFoundError, json.JSONDecodeError):
-        return {"targets": [], "optin_message_id": None}  # default values
+        save_config(default_config) # default values
+        return default_config
 
 def save_config(config):
     with open("config.json", "w") as f:
