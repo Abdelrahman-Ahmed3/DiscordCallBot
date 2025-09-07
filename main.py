@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import os
 import json
 import webserver
+import asyncio
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 
@@ -23,7 +24,8 @@ def load_config():
         "waiting_channelid": None,
         "target_channelid": None,
         "targets": [],
-        "optin_message_id": None
+        "optin_message_id": None,
+        "wait": 10
     }
 
     try:
@@ -62,6 +64,15 @@ async def tchannel(ctx, *, tchannel: int): #function to add the target channel f
         print("error with target channel")
 
 @bot.command()
+async def wait (ctx, *, waittime: int):#function to add the waiting channel from discord
+    try:
+        config["wait"] = waittime
+        save_config(config)
+        await ctx.send(f"✅ Waiting time updated to `{waittime}` seconds")
+    except:
+        print("error with waiting time")
+
+@bot.command()
 async def setup(ctx): #!setup sends an embed with two reactions to monitor in the next event for adding people to the .json file
     embed = discord.Embed(
         title="Voice Notification Opt-in",
@@ -82,15 +93,28 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
     if after.channel and after.channel.id == config["waiting_channelid"] and before.channel != after.channel:
         print("waiting good")
         user_id = member.id
-        if user_id in config["targets"] and len(waiting_channel.members) <= 1 :
-            print("user id good")
-            for targetid in config["targets"]: #goes through the target members list and sends them a dm
-                 print("for loop (1) good")
-                 if targetid != member.id:
-                    user = await bot.fetch_user(targetid)
-                    await user.send(f"<@{user_id}> is now waiting for you in <#{config['waiting_channelid']}>")
-                 else:
-                     continue
+        await asyncio.sleep(config.get('wait', 10))#this and the next if statement waits the wait time and then checks if the person is still in the channel to prevent fast spamming
+        if (
+                user_id in config["targets"]
+                and member.voice  # make sure member is still connected
+                and member.voice.channel
+                and member.voice.channel.id == config["waiting_channelid"]  # still in waiting channel
+                and len(waiting_channel.members) <= 1 #is alone
+        ):
+            if user_id in config["targets"] and len(waiting_channel.members) <= 1 :
+                print("user id good")
+                for targetid in config["targets"]: #goes through the target members list and sends them a dm
+                     print("for loop (1) good")
+                     if targetid != member.id:
+                         try: #try/except block to prevent the bot from not completing the list if someone blocked it or has dms closed
+                            user = await bot.fetch_user(targetid)
+                            await user.send(f"<@{user_id}> is now waiting for you in <#{config['waiting_channelid']}>")
+                         except discord.Forbidden:
+                             print(f"Could not DM {targetid}: DMs disabled or bot blocked")
+                         except discord.NotFound:
+                             print(f"User {targetid} not found")
+                         except discord.HTTPException as e:
+                             print(f"Failed to send DM to {targetid}: {e}")
     if waiting_channel.members and len(waiting_channel.members) > 1: #checks if the channel has more than one member and if the channel does it moves them all to the target channel
         print ("len check good")
         for waiting_member in list(waiting_channel.members):
@@ -105,7 +129,6 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
 async def on_raw_reaction_add(payload): #adds and removes members from the setup message
     try:
             print(f"[REACTION] user={payload.user_id}, emoji={payload.emoji}, message={payload.message_id}")
-
             if payload.user_id == bot.user.id: #avoids the bot's id from getting added
                 print("bot reaction detected")
                 return
