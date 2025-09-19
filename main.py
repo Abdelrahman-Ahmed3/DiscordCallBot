@@ -18,6 +18,7 @@ intents.members = True
 intents.reactions = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+pending_notifications = set()
 
 def load_config():
     default_config = {
@@ -93,28 +94,39 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
     if after.channel and after.channel.id == config["waiting_channelid"] and before.channel != after.channel:
         print("waiting good")
         user_id = member.id
-        await asyncio.sleep(config.get('wait', 10))#this and the next if statement waits the wait time and then checks if the person is still in the channel to prevent fast spamming
-        if (
-                user_id in config["targets"]
-                and member.voice  # make sure member is still connected
-                and member.voice.channel
-                and member.voice.channel.id == config["waiting_channelid"]  # still in waiting channel
-                and len(waiting_channel.members) <= 1 #is alone
-        ):
-            if user_id in config["targets"] and len(waiting_channel.members) <= 1 :
+        if user_id in pending_notifications:
+            print("user already pending a notification")
+            return
+        pending_notifications.add(user_id)
+        try:
+            await asyncio.sleep(config.get('wait',10))  # this and the next if statement waits the wait time and then checks if the person is still in the channel to prevent fast spamming
+            waiting_channel = member.guild.get_channel(config['waiting_channelid'])
+
+            # recheck conditions after the wait
+            if (
+                    user_id in config["targets"]
+                    and member.voice
+                    and member.voice.channel
+                    and member.voice.channel.id == config["waiting_channelid"]  # still in waiting channel
+                    and len(waiting_channel.members) <= 1
+            ):
                 print("user id good")
-                for targetid in config["targets"]: #goes through the target members list and sends them a dm
-                     print("for loop (1) good")
-                     if targetid != member.id:
-                         try: #try/except block to prevent the bot from not completing the list if someone blocked it or has dms closed
-                            user = await bot.fetch_user(targetid)
-                            await user.send(f"<@{user_id}> is now waiting for you in <#{config['waiting_channelid']}>")
-                         except discord.Forbidden:
-                             print(f"Could not DM {targetid}: DMs disabled or bot blocked")
-                         except discord.NotFound:
-                             print(f"User {targetid} not found")
-                         except discord.HTTPException as e:
-                             print(f"Failed to send DM to {targetid}: {e}")
+                if user_id in config["targets"] and len(waiting_channel.members) <= 1 :
+                    print("user id good")
+                    for targetid in config["targets"]: #goes through the target members list and sends them a dm
+                         print("for loop (1) good")
+                         if targetid != member.id:
+                             try: #try/except block to prevent the bot from not completing the list if someone blocked it or has dms closed
+                                user = await bot.fetch_user(targetid)
+                                await user.send(f"<@{user_id}> is now waiting for you in <#{config['waiting_channelid']}>")
+                             except discord.Forbidden:
+                                 print(f"Could not DM {targetid}: DMs disabled or bot blocked")
+                             except discord.NotFound:
+                                 print(f"User {targetid} not found")
+                             except discord.HTTPException as e:
+                                 print(f"Failed to send DM to {targetid}: {e}")
+        finally:
+           pending_notifications.discard(user_id)
     if waiting_channel.members and len(waiting_channel.members) > 1: #checks if the channel has more than one member and if the channel does it moves them all to the target channel
         print ("len check good")
         for waiting_member in list(waiting_channel.members):
