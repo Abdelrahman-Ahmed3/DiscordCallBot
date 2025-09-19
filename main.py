@@ -86,6 +86,7 @@ async def setup(ctx): #!setup sends an embed with two reactions to monitor in th
     config["optin_message_id"] = msg.id
     save_config(config)
 
+@bot.command()
 async def cfg(ctx):
     config_dump = json.dumps(config, indent=4)
     await ctx.send(f"```json\n{config_dump}\n```")
