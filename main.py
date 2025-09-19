@@ -87,9 +87,8 @@ async def setup(ctx): #!setup sends an embed with two reactions to monitor in th
     save_config(config)
 
 async def cfg(ctx):
-    with open("config_dump.txt", "w") as f:
-        json.dump(config, f, indent=4)
-    await ctx.send(file=discord.File("config_dump.txt"))
+    config_dump = json.dumps(config, indent=4)
+    await ctx.send(f"```json\n{config_dump}\n```")
 
 @bot.event
 async def on_voice_state_update(member, before, after): #checks if any member joins the waiting channel with the target role and then moves them to target channel
