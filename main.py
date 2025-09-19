@@ -95,6 +95,17 @@ async def cfg(ctx):
 async def on_voice_state_update(member, before, after): #checks if any member joins the waiting channel with the target role and then moves them to target channel
     waiting_channel = member.guild.get_channel(config['waiting_channelid'])
     target_channel = member.guild.get_channel(config['target_channelid'])
+
+    if waiting_channel.members and len(waiting_channel.members) > 1: #checks if the channel has more than one member and if the channel does it moves them all to the target channel
+        print ("len check good")
+        for waiting_member in list(waiting_channel.members):
+            try:
+                await waiting_member.move_to(target_channel)
+            except discord.Forbidden:
+                print("Missing Move Members permission")
+            except Exception as e:
+                print("Move error:", e)
+
     if after.channel and after.channel.id == config["waiting_channelid"] and before.channel != after.channel:
         print("waiting good")
         user_id = member.id
@@ -131,15 +142,6 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
                                  print(f"Failed to send DM to {targetid}: {e}")
         finally:
            pending_notifications.discard(user_id)
-    if waiting_channel.members and len(waiting_channel.members) > 1: #checks if the channel has more than one member and if the channel does it moves them all to the target channel
-        print ("len check good")
-        for waiting_member in list(waiting_channel.members):
-            try:
-                await waiting_member.move_to(target_channel)
-            except discord.Forbidden:
-                print("Missing Move Members permission")
-            except Exception as e:
-                print("Move error:", e)
 
 @bot.event
 async def on_raw_reaction_add(payload): #adds and removes members from the setup message
