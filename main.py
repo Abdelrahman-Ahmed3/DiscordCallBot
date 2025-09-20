@@ -83,7 +83,7 @@ def save_config(config_data):
 config = load_config()
 
 print("Loaded config from JSONBin:", config)
-GUILD_ID = discord.Object(id = config["server_id"])
+GUILD_ID = discord.Object(id = 608991530270851083)
 @bot.event
 async def on_ready():
     print(f"✅ Bot {bot.user} is online!")
