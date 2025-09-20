@@ -85,8 +85,17 @@ config = load_config()
 print("Loaded config from JSONBin:", config)
 GUILD_ID = discord.Object(id = 608991530270851083)
 @bot.event
-async def on_ready():
+async def on_ready(self):
     print(f"✅ Bot {bot.user} is online!")
+
+    try:
+        guild = discord.Object(id = 608991530270851083)
+        synced = await self.tree.sync(guild = guild)
+        print(f"synced {len(synced)} commands")
+
+    except Exception as e:
+        print(e)
+
 
 @bot.command()
 async def test_command(ctx):
