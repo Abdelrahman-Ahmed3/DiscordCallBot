@@ -89,6 +89,10 @@ async def on_ready():
 async def test_command(ctx):
     await ctx.send("✅ Bot is working!")
 
+@bot.tree.command(name="test_slash", description="Check if slash commands work")
+async def test_slash(interaction: discord.Interaction):
+    await interaction.response.send_message("✅ Slash command is working!")
+
 
 @bot.tree.command(name="set_server")
 @discord.app_commands.checks.has_permissions(administrator=True)
