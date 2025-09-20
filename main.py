@@ -85,6 +85,10 @@ async def on_ready():
         print(f"❌ Failed to sync commands: {e}")
 
     print(f"Loaded {len(bot.tree.get_commands())} commands")
+@bot.command()
+async def test_command(ctx):
+    await ctx.send("✅ Bot is working!")
+
 
 @bot.tree.command(name="set_server")
 @discord.app_commands.checks.has_permissions(administrator=True)
