@@ -82,39 +82,20 @@ def save_config(config_data):
         print(f"❌ Failed to save config to JSONBin: {e}")
 config = load_config()
 
-print("Loaded config from JSONBin:", config)
-GUILD_ID = discord.Object(id = 608991530270851083)
+print("Loaded config from JSONBin")
+GUILD_ID = discord.Object(id = config.get("server_id"))
 @bot.event
-async def on_ready(self):
-    print(f"✅ Bot {bot.user} is online!")
-
+async def on_ready():
+    print(f"✅ {bot.user} is online!")
     try:
-        guild = discord.Object(id = 608991530270851083)
-        synced = await self.tree.sync(guild = guild)
-        print(f"synced {len(synced)} commands")
+        guild = discord.Object(id = config.get("server_id"))
+        synced = await bot.tree.sync(guild = guild)
+        print(f"synced {len(synced)} commands to {config.get("server_id")}")
 
     except Exception as e:
-        print(e)
+        print(f"Error: {e}")
 
-
-@bot.command()
-async def test_command(ctx):
-    await ctx.send("✅ Bot is working!")
-
-
-@bot.tree.command(name="test_slash", description="Check if slash commands work", guild=GUILD_ID)
-async def test_slash(interaction: discord.Interaction):
-    await interaction.response.send_message("✅ Slash command is working!")
-
-@bot.command()
-async def sync(ctx: commands.Context, guild: discord.Guild = None):
-    if guild is None:
-        guild = ctx.guild  # default to current server
-    await bot.tree.sync(guild=guild)
-    await ctx.send(f"✅ Commands synced to {guild.name}")
-
-
-@bot.tree.command(name="set_server")
+@bot.tree.command(name="set_server", description="Sets the server ID", guild=GUILD_ID)
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_server(interaction: discord.Interaction):
     try:
@@ -122,51 +103,51 @@ async def set_server(interaction: discord.Interaction):
         server_id = interaction.guild.id
         config["server_id"] = server_id
         save_config(config)
-        await interaction.response.send(
+        await interaction.response.send_message(
             f"✅ Server has been set. Commands will now sync to **{interaction.guild.name}**."
         )
         print(f"Server ID set to: {server_id}")
     except Exception as e:
         print(f"Error setting server ID: {e}")
-        await interaction.response.send(
+        await interaction.response.send_message(
             "❌ Failed to set server ID.", ephemeral=True
         )
 
-@bot.tree.command(name="set_waiting_channel")
+@bot.tree.command(name="set_waiting_channel", description="Sets the waiting channel", guild=GUILD_ID)
 @discord.app_commands.checks.has_permissions(administrator=True)
-async def set_waiting_channel(interaction: discord.Interaction, WaitingChannel: discord.VoiceChannel):#function to add the waiting channel from discord
+async def set_waiting_channel(interaction: discord.Interaction, waitingchannel: discord.VoiceChannel):#function to add the waiting channel from discord
     try:
-        config["waiting_channelid"] = WaitingChannel.id
+        config["waiting_channelid"] = waitingchannel.id
         save_config(config)
-        await interaction.response.send(f"✅ Waiting channel updated to {WaitingChannel.name}")
+        await interaction.response.send_message(f"✅ Waiting channel updated to {waitingchannel.name}")
     except Exception as e:
         print(f"Error with waiting channel: {e}")
-        await interaction.response.send("❌ Failed to update waiting channel.", ephemeral=True)
+        await interaction.response.send_message("❌ Failed to update waiting channel.", ephemeral=True)
 
 
-@bot.tree.command(name="set_target_channel")
+@bot.tree.command(name="set_target_channel", description="Sets the target channel", guild=GUILD_ID)
 @discord.app_commands.checks.has_permissions(administrator=True)
-async def set_target_channel(interaction: discord.Interaction, TargetChannel: discord.VoiceChannel): #function to add the Target channel from discord
+async def set_target_channel(interaction: discord.Interaction, targetchannel: discord.VoiceChannel): #function to add the Target channel from discord
     try:
-        config["target_channelid"] = TargetChannel.id
+        config["target_channelid"] = targetchannel.id
         save_config(config)
-        await interaction.response.send(f"✅ Target channel updated to {TargetChannel.name}")
+        await interaction.response.send_message(f"✅ Target channel updated to {targetchannel.name}")
     except Exception as e:
         print(f"Error with target channel: {e}")
-        await interaction.response.send("❌ Failed to update target channel.", ephemeral=True)
+        await interaction.response.send_message("❌ Failed to update target channel.", ephemeral=True)
 
-@bot.tree.command(name="set_waiting_time")
+@bot.tree.command(name="set_waiting_time", description="Sets the waiting time", guild=GUILD_ID)
 @discord.app_commands.checks.has_permissions(administrator=True)
-async def set_waiting_time(interaction: discord.Interaction, WaitTime: int): #function to configure the waiting time from discord
+async def set_waiting_time(interaction: discord.Interaction, waittime: int): #function to configure the waiting time from discord
     try:
-        config["wait"] = WaitTime
+        config["wait"] = waittime
         save_config(config)
-        await interaction.response.send(f"✅ Waiting time updated to `{WaitTime}` seconds")
+        await interaction.response.send_message(f"✅ Waiting time updated to `{waittime}` seconds")
     except Exception as e:
         print(f"Error with waiting channel: {e}")
-        await interaction.response.send("❌ Failed to update waiting time.", ephemeral=True)
+        await interaction.response.send_message("❌ Failed to update waiting time.", ephemeral=True)
 
-@bot.tree.command(name="setup_message")
+@bot.tree.command(name="setup_message", description="Sends the setup message", guild=GUILD_ID)
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def setup_message(interaction: discord.Interaction): #/setup_message sends an embed with two reactions to monitor in the next event for adding people to the .json file
     embed = discord.Embed(
@@ -180,11 +161,11 @@ async def setup_message(interaction: discord.Interaction): #/setup_message sends
     config["optin_message_id"] = msg.id
     save_config(config)
 
-@bot.tree.command(name="config")
+@bot.tree.command(name="config", description="Sends the Config.JSON file to check", guild=GUILD_ID)
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def cfg(interaction: discord.Interaction): #/config send a message with the full config
     config_dump = json.dumps(config, indent=4)
-    await interaction.response.send(f"```json\n{config_dump}\n```", ephemeral=True)
+    await interaction.response.send_message(f"```json\n{config_dump}\n```", ephemeral=True)
 
 @bot.event
 async def on_voice_state_update(member, before, after): #checks if any member joins the waiting channel with the target role and then moves them to target channel
