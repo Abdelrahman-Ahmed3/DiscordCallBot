@@ -41,7 +41,8 @@ def load_config():
         "target_channelid": None,
         "targets": [],
         "optin_message_id": None,
-        "wait": 10
+        "wait": 10,
+        "server_id": None
     }
     try:
         # Fetch the latest version of the bin
@@ -65,7 +66,39 @@ config = load_config()
 
 @bot.event #happens when the bot boots up, needed.
 async def on_ready():
-    print(f" {bot.user.name} set up successfully with {len(config["targets"])} members")
+    server_id = config.get("server_id")
+    if server_id:
+        try:
+            guild = discord.Object(id=server_id)
+            bot.tree.copy_global_to_guild(guild=guild)
+            await bot.tree.sync(guild=guild)
+            print(f"Commands have been forcefully synced to server: {server_id}")
+        except Exception as e:
+            print(f"Error during command sync: {e}")
+    else:
+        print("--------------------------------------------------")
+        print("WARNING: Server ID is not set in the config.")
+        print("An admin must run the /set_server command.")
+        print("--------------------------------------------------")
+    print(f" {bot.user.name} set up successfully with {len(config['targets'])} members")
+
+@bot.tree.command(name="set_server")
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def set_server(interaction: discord.Interaction):
+    try:
+        # Get the ID of the server where the command was used
+        server_id = interaction.guild.id
+        config["server_id"] = server_id
+        save_config(config)
+        await interaction.response.send_message(
+            f"✅ Server has been set. Commands will now sync to **{interaction.guild.name}**."
+        )
+        print(f"Server ID set to: {server_id}")
+    except Exception as e:
+        print(f"Error setting server ID: {e}")
+        await interaction.response.send_message(
+            "❌ Failed to set server ID.", ephemeral=True
+        )
 
 @bot.tree.command(name="set_waiting_channel")
 @discord.app_commands.checks.has_permissions(administrator=True)
