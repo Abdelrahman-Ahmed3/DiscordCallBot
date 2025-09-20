@@ -47,8 +47,17 @@ def load_config():
     try:
         # Fetch the latest version of the bin
         response = requests.get(f"{JSONBIN_URL}/latest", headers=HEADERS)
-        response.raise_for_status() # Raises an error for bad responses (4xx or 5xx)
-        return response.json()['record']
+        response.raise_for_status()
+        data = response.json()['record']
+
+        # Convert IDs from strings to ints for Python usage
+        for key in ["waiting_channelid", "target_channelid", "optin_message_id", "server_id"]:
+            if data.get(key):
+                data[key] = int(data[key])
+
+        data["targets"] = [int(t) for t in data.get("targets", [])]
+
+        return data
     except (requests.exceptions.RequestException, json.JSONDecodeError, KeyError) as e:
         print(f"Failed to load config from jsonbin.io: {e}. Using default config.")
         # If it fails (e.g., first run), save the default config to create the bin content
@@ -57,11 +66,19 @@ def load_config():
 
 def save_config(config_data):
     try:
-        response = requests.put(JSONBIN_URL, json=config_data, headers=HEADERS)
-        response.raise_for_status() # Check for errors
-        print("Configuration successfully saved to jsonbin.io.")
+        # Convert all IDs to strings before saving to JSONBin
+        data_to_save = config_data.copy()
+        for key in ["waiting_channelid", "target_channelid", "optin_message_id", "server_id"]:
+            if data_to_save.get(key) is not None:
+                data_to_save[key] = str(data_to_save[key])
+
+        data_to_save["targets"] = [str(t) for t in data_to_save.get("targets", [])]
+
+        response = requests.put(JSONBIN_URL, json=data_to_save, headers=HEADERS)
+        response.raise_for_status()
+        print("✅ Configuration successfully saved to JSONBin.")
     except requests.exceptions.RequestException as e:
-        print(f"❌ Failed to save config to jsonbin.io: {e}")
+        print(f"❌ Failed to save config to JSONBin: {e}")
 config = load_config()
 
 print("Loaded config from JSONBin:", config)
