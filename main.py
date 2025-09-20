@@ -86,4 +86,5 @@ async def on_ready():
 
 # Keep Render alive and run bot in separate thread
 webserver.keep_alive()
-threading.Thread(target=lambda: bot.run(token, log_handler=handler, log_level=logging.DEBUG)).start()
+bot.run(token, log_handler=handler, log_level=logging.DEBUG)
+
