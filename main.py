@@ -6,8 +6,22 @@ import os
 import json
 import webserver
 import asyncio
+import requests
+
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
+JSONBIN_API_KEY = os.getenv('JSONBIN_API_KEY')
+JSONBIN_BIN_ID = os.getenv('JSONBIN_BIN_ID')
+
+if not all([token, JSONBIN_API_KEY, JSONBIN_BIN_ID]): #checks if anything is missing and raises an error in that case
+    print("❌ FATAL ERROR: One or more required environment variables are missing.")
+    exit()
+
+JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}"
+HEADERS = {
+  'Content-Type': 'application/json',
+  'X-Master-Key': JSONBIN_API_KEY
+}
 
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 intents = discord.Intents.default()
@@ -29,17 +43,24 @@ def load_config():
         "optin_message_id": None,
         "wait": 10
     }
-
     try:
-        with open("config.json", "r") as f:
-            return json.load(f)   # load as dict
-    except (FileNotFoundError, json.JSONDecodeError):
-        save_config(default_config) # default values
+        # Fetch the latest version of the bin
+        response = requests.get(f"{JSONBIN_URL}/latest", headers=HEADERS)
+        response.raise_for_status() # Raises an error for bad responses (4xx or 5xx)
+        return response.json()['record']
+    except (requests.exceptions.RequestException, json.JSONDecodeError, KeyError) as e:
+        print(f"Failed to load config from jsonbin.io: {e}. Using default config.")
+        # If it fails (e.g., first run), save the default config to create the bin content
+        save_config(default_config)
         return default_config
 
-def save_config(config):
-    with open("config.json", "w") as f:
-        json.dump(config, f, indent=4)
+def save_config(config_data):
+    try:
+        response = requests.put(JSONBIN_URL, json=config_data, headers=HEADERS)
+        response.raise_for_status() # Check for errors
+        print("Configuration successfully saved to jsonbin.io.")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Failed to save config to jsonbin.io: {e}")
 config = load_config()
 
 @bot.event #happens when the bot boots up, needed.
@@ -102,6 +123,9 @@ async def cfg(interaction: discord.Interaction): #/config send a message with th
 
 @bot.event
 async def on_voice_state_update(member, before, after): #checks if any member joins the waiting channel with the target role and then moves them to target channel
+    if not config['waiting_channelid'] or not config['target_channelid']: # Do nothing if the channels are not configured yet to avoid the bot crashing
+        return
+
     waiting_channel = member.guild.get_channel(config['waiting_channelid'])
     target_channel = member.guild.get_channel(config['target_channelid'])
 
