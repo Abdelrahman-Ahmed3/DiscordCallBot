@@ -64,6 +64,8 @@ def save_config(config_data):
         print(f"❌ Failed to save config to jsonbin.io: {e}")
 config = load_config()
 
+print("Loaded config from JSONBin:", config)
+
 @bot.event #happens when the bot boots up, needed.
 async def on_ready():
     server_id = config.get("server_id")
