@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import logging
 from dotenv import load_dotenv
 import os
@@ -82,33 +83,19 @@ def save_config(config_data):
 config = load_config()
 
 print("Loaded config from JSONBin:", config)
-
+GUILD_ID = discord.Object(id = config["server_id"])
 @bot.event
 async def on_ready():
     print(f"✅ Bot {bot.user} is online!")
 
-    server_id = config.get("server_id")
-    if not server_id:
-        print("⚠️ Server ID not set. Use /set_server first.")
-        return
-
-    guild = discord.Object(id=server_id)
-    try:
-        # Copy global commands to this server (fast sync)
-        bot.tree.copy_global_to_guild(guild=guild)
-        await bot.tree.sync(guild=guild)
-        print(f"✅ Commands synced to server {server_id}")
-    except Exception as e:
-        print(f"❌ Failed to sync commands: {e}")
-
-    print(f"Loaded {len(bot.tree.get_commands())} commands")
 @bot.command()
 async def test_command(ctx):
     await ctx.send("✅ Bot is working!")
 
-@bot.tree.command(name="test_slash", description="Check if slash commands work")
+
+@bot.tree.command(name="test_slash", description="Check if slash commands work", guild=GUILD_ID)
 async def test_slash(interaction: discord.Interaction):
-    await interaction.response.send("✅ Slash command is working!")
+    await interaction.response.send_message("✅ Slash command is working!")
 
 @bot.command()
 async def sync(ctx: commands.Context, guild: discord.Guild = None):
