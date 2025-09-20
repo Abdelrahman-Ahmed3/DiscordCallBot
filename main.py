@@ -93,6 +93,13 @@ async def test_command(ctx):
 async def test_slash(interaction: discord.Interaction):
     await interaction.response.send("✅ Slash command is working!")
 
+@bot.command()
+async def sync(ctx: commands.Context, guild: discord.Guild = None):
+    if guild is None:
+        guild = ctx.guild  # default to current server
+    await bot.tree.sync(guild=guild)
+    await ctx.send(f"✅ Commands synced to {guild.name}")
+
 
 @bot.tree.command(name="set_server")
 @discord.app_commands.checks.has_permissions(administrator=True)
