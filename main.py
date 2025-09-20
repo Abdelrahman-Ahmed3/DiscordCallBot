@@ -91,7 +91,7 @@ async def test_command(ctx):
 
 @bot.tree.command(name="test_slash", description="Check if slash commands work")
 async def test_slash(interaction: discord.Interaction):
-    await interaction.response.send_message("✅ Slash command is working!")
+    await interaction.response.send("✅ Slash command is working!")
 
 
 @bot.tree.command(name="set_server")
@@ -102,13 +102,13 @@ async def set_server(interaction: discord.Interaction):
         server_id = interaction.guild.id
         config["server_id"] = server_id
         save_config(config)
-        await interaction.response.send_message(
+        await interaction.response.send(
             f"✅ Server has been set. Commands will now sync to **{interaction.guild.name}**."
         )
         print(f"Server ID set to: {server_id}")
     except Exception as e:
         print(f"Error setting server ID: {e}")
-        await interaction.response.send_message(
+        await interaction.response.send(
             "❌ Failed to set server ID.", ephemeral=True
         )
 
@@ -118,10 +118,10 @@ async def set_waiting_channel(interaction: discord.Interaction, WaitingChannel: 
     try:
         config["waiting_channelid"] = WaitingChannel.id
         save_config(config)
-        await interaction.response.send_message(f"✅ Waiting channel updated to {WaitingChannel.name}")
+        await interaction.response.send(f"✅ Waiting channel updated to {WaitingChannel.name}")
     except Exception as e:
         print(f"Error with waiting channel: {e}")
-        await interaction.response.send_message("❌ Failed to update waiting channel.", ephemeral=True)
+        await interaction.response.send("❌ Failed to update waiting channel.", ephemeral=True)
 
 
 @bot.tree.command(name="set_target_channel")
@@ -130,10 +130,10 @@ async def set_target_channel(interaction: discord.Interaction, TargetChannel: di
     try:
         config["target_channelid"] = TargetChannel.id
         save_config(config)
-        await interaction.response.send_message(f"✅ Target channel updated to {TargetChannel.name}")
+        await interaction.response.send(f"✅ Target channel updated to {TargetChannel.name}")
     except Exception as e:
         print(f"Error with target channel: {e}")
-        await interaction.response.send_message("❌ Failed to update target channel.", ephemeral=True)
+        await interaction.response.send("❌ Failed to update target channel.", ephemeral=True)
 
 @bot.tree.command(name="set_waiting_time")
 @discord.app_commands.checks.has_permissions(administrator=True)
@@ -141,10 +141,10 @@ async def set_waiting_time(interaction: discord.Interaction, WaitTime: int): #fu
     try:
         config["wait"] = WaitTime
         save_config(config)
-        await interaction.response.send_message(f"✅ Waiting time updated to `{WaitTime}` seconds")
+        await interaction.response.send(f"✅ Waiting time updated to `{WaitTime}` seconds")
     except Exception as e:
         print(f"Error with waiting channel: {e}")
-        await interaction.response.send_message("❌ Failed to update waiting time.", ephemeral=True)
+        await interaction.response.send("❌ Failed to update waiting time.", ephemeral=True)
 
 @bot.tree.command(name="setup_message")
 @discord.app_commands.checks.has_permissions(administrator=True)
@@ -164,7 +164,7 @@ async def setup_message(interaction: discord.Interaction): #/setup_message sends
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def cfg(interaction: discord.Interaction): #/config send a message with the full config
     config_dump = json.dumps(config, indent=4)
-    await interaction.response.send_message(f"```json\n{config_dump}\n```", ephemeral=True)
+    await interaction.response.send(f"```json\n{config_dump}\n```", ephemeral=True)
 
 @bot.event
 async def on_voice_state_update(member, before, after): #checks if any member joins the waiting channel with the target role and then moves them to target channel
