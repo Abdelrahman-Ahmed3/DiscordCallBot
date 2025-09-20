@@ -18,6 +18,7 @@ intents.members = True
 intents.reactions = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+
 pending_notifications = set()
 
 def load_config():
@@ -45,51 +46,59 @@ config = load_config()
 async def on_ready():
     print(f" {bot.user.name} set up successfully with {len(config["targets"])} members")
 
-@bot.command()
-async def wchannel(ctx, *, wchannel: int):#function to add the waiting channel from discord
+@bot.tree.command(name="set_waiting_channel")
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def set_waiting_channel(interaction: discord.Interaction, WaitingChannel: discord.VoiceChannel):#function to add the waiting channel from discord
     try:
-        config["waiting_channelid"] = wchannel
+        config["waiting_channelid"] = WaitingChannel.id
         save_config(config)
-        await ctx.send(f"✅ Waiting channel updated to `{wchannel}`")
-    except:
-        print("error with waiting channel")
+        await interaction.response.send_message(f"✅ Waiting channel updated to {WaitingChannel.name}")
+    except Exception as e:
+        print(f"Error with waiting channel: {e}")
+        await interaction.response.send_message("❌ Failed to update waiting channel.", ephemeral=True)
 
 
-@bot.command()
-async def tchannel(ctx, *, tchannel: int): #function to add the target channel from discord
+@bot.tree.command(name="set_target_channel")
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def set_target_channel(interaction: discord.Interaction, TargetChannel: discord.VoiceChannel): #function to add the Target channel from discord
     try:
-        config["target_channelid"] = tchannel
+        config["target_channelid"] = TargetChannel.id
         save_config(config)
-        await ctx.send(f"✅ Waiting channel updated to `{tchannel}`")
-    except:
-        print("error with target channel")
+        await interaction.response.send_message(f"✅ Target channel updated to {TargetChannel.name}")
+    except Exception as e:
+        print(f"Error with target channel: {e}")
+        await interaction.response.send_message("❌ Failed to update target channel.", ephemeral=True)
 
-@bot.command()
-async def wait (ctx, *, waittime: int):#function to add the waiting channel from discord
+@bot.tree.command(name="set_waiting_time")
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def set_waiting_time(interaction: discord.Interaction, WaitTime: int): #function to configure the waiting time from discord
     try:
-        config["wait"] = waittime
+        config["wait"] = WaitTime
         save_config(config)
-        await ctx.send(f"✅ Waiting time updated to `{waittime}` seconds")
-    except:
-        print("error with waiting time")
+        await interaction.response.send_message(f"✅ Waiting time updated to `{WaitTime}` seconds")
+    except Exception as e:
+        print(f"Error with waiting channel: {e}")
+        await interaction.response.send_message("❌ Failed to update waiting time.", ephemeral=True)
 
-@bot.command()
-async def setup(ctx): #!setup sends an embed with two reactions to monitor in the next event for adding people to the .json file
+@bot.tree.command(name="setup_message")
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def setup_message(interaction: discord.Interaction): #/setup_message sends an embed with two reactions to monitor in the next event for adding people to the .json file
     embed = discord.Embed(
         title="Voice Notification Opt-in",
         description="React with ✅ to get notified when someone is waiting.\nReact with ❌ to stop notifications.",
         color=discord.Color.blue()
     )
-    msg = await ctx.send(embed=embed)
+    msg = await interaction.channel.send(embed=embed)
     await msg.add_reaction("✅")
     await msg.add_reaction("❌")
     config["optin_message_id"] = msg.id
     save_config(config)
 
-@bot.command()
-async def cfg(ctx):
+@bot.tree.command(name="config")
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def cfg(interaction: discord.Interaction): #/config send a message with the full config
     config_dump = json.dumps(config, indent=4)
-    await ctx.send(f"```json\n{config_dump}\n```")
+    await interaction.response.send_message(f"```json\n{config_dump}\n```", ephemeral=True)
 
 @bot.event
 async def on_voice_state_update(member, before, after): #checks if any member joins the waiting channel with the target role and then moves them to target channel

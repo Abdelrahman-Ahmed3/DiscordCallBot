@@ -1,8 +1,7 @@
 {
-    "targets": [
-
-    ],
-    "optin_message_id": ,
-    "waiting_channelid": ,
-    "target_channelid":
+    "waiting_channelid": null,
+    "target_channelid": null,
+    "targets": [],
+    "optin_message_id": null,
+    "wait": 10
 }
