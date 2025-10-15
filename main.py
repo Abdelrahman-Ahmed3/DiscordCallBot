@@ -99,7 +99,7 @@ async def on_ready():
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_server(interaction: discord.Interaction):
     try:
-        # Get the ID of the server where the command was used
+        # Gets the ID of the server where the command was used
         server_id = interaction.guild.id
         config["server_id"] = server_id
         save_config(config)
@@ -112,6 +112,24 @@ async def set_server(interaction: discord.Interaction):
         await interaction.response.send_message(
             "❌ Failed to set server ID.", ephemeral=True
         )
+
+@bot.command()
+async def setserver(ctx):
+    try:
+        # Gets the ID of the server where the command was used
+        server_id = ctx.guild.id
+        config["server_id"] = server_id
+        save_config(config)
+        await ctx.author.send(
+            f"✅ Server has been set. Commands will now sync to **{ctx.guild.name}**."
+        )
+        print(f"Server ID set to: {server_id}")
+    except Exception as e:
+        print(f"Error setting server ID: {e}")
+        await ctx.author.send(
+            "❌ Failed to set server ID."
+        )
+
 
 @bot.tree.command(name="set_waiting_channel", description="Sets the waiting channel", guild=GUILD_ID)
 @discord.app_commands.checks.has_permissions(administrator=True)
