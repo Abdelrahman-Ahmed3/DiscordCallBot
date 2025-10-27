@@ -43,7 +43,9 @@ def load_config():
         "targets": [],
         "optin_message_id": None,
         "wait": 10,
-        "server_id": None
+        "server_id": None,
+        "notifications_sent": None,
+        "members_moved": None
     }
     try:
         # Fetch the latest version of the bin
@@ -90,10 +92,11 @@ async def on_ready():
     try:
         guild = discord.Object(id = config.get("server_id"))
         synced = await bot.tree.sync(guild = guild)
-        print(f"synced {len(synced)} commands to {config.get("server_id")}")
+        print(f"synced {len(synced)} commands to {config.get('server_id')}")
 
     except Exception as e:
         print(f"Error: {e}")
+    bot.loop.create_task(update_status())
 
 @bot.tree.command(name="set_server", description="Sets the server ID", guild=GUILD_ID)
 @discord.app_commands.checks.has_permissions(administrator=True)
@@ -129,6 +132,18 @@ async def setserver(ctx):
         await ctx.author.send(
             "❌ Failed to set server ID."
         )
+
+@bot.event
+async def update_status():
+    await bot.wait_until_ready()  # ensures bot is connected
+    while not bot.is_closed():
+        await bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.playing,
+                name=f" {config['notifications_sent']} DMs | {config['members_moved']} Moved"
+            )
+        )
+        await asyncio.sleep(1200)
 
 
 @bot.tree.command(name="set_waiting_channel", description="Sets the waiting channel", guild=GUILD_ID)
@@ -198,6 +213,7 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
         for waiting_member in list(waiting_channel.members):
             try:
                 await waiting_member.move_to(target_channel)
+                config["members_moved"] += 1
             except discord.Forbidden:
                 print("Missing Move Members permission")
             except Exception as e:
@@ -231,12 +247,16 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
                              try: #try/except block to prevent the bot from not completing the list if someone blocked it or has dms closed
                                 user = await bot.fetch_user(targetid)
                                 await user.send(f"<@{user_id}> is now waiting for you in <#{config['waiting_channelid']}>")
+                                config["notifications_sent"] += 1
                              except discord.Forbidden:
                                  print(f"Could not DM {targetid}: DMs disabled or bot blocked")
                              except discord.NotFound:
                                  print(f"User {targetid} not found")
                              except discord.HTTPException as e:
                                  print(f"Failed to send DM to {targetid}: {e}")
+                    user = await bot.fetch_user(user_id)
+                    await user.send(f"{len(config['targets'])} DMs sent to let members know you are waiting.")
+                    config["notifications_sent"] += 1
         finally:
            pending_notifications.discard(user_id)
 
