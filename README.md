@@ -44,12 +44,14 @@ This is a bot designed to notify opted-in users when someone joins a specific â€
 
     ```json
     {
-       "waiting_channelid": Null,
-       "target_channelid": Null,
-       "targets": [],
-       "optin_message_id": Null,
-       "wait": 10,
-       "server_id": Null
+       "waiting_channelid": null,
+        "target_channelid": null,
+        "targets": [],
+        "optin_message_id": null,
+        "wait": 10,
+        "server_id": null,
+        "notifications_sent": null,
+        "members_moved": null
     }
     ```
 ## Set Up
