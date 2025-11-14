@@ -2,7 +2,7 @@
 
 
 
-This is a bot designed to notify opted-in users when someone joins a specific “waiting room” voice channel; it can be used for study groups, gaming servers, or teams doing a group project. The bot monitors a designated waiting channel, waits the configured delay, notifies opted-in users, and (when applicable) moves members to the target channel. The bot is designed to be hosted on Render for free, with the option of self-hosting if preferred.
+This is a bot designed to notify opted-in users when someone joins a specific “waiting room” voice channel; it can be used for study groups, gaming servers, or teams doing a group project. The bot monitors a designated waiting channel, waits the configured delay, notifies opted-in users, and (when applicable) moves members to the target channel, and it will optionally check if it is empty, if it has people then it will send them to the second target channel. The bot is designed to be hosted on Render for free, with the option of self-hosting if preferred.
 
 ## Features
 - Notifies selected users when someone joins a waiting voice channel.
@@ -46,6 +46,8 @@ This is a bot designed to notify opted-in users when someone joins a specific �
     {
        "waiting_channelid": null,
         "target_channelid": null,
+        "second_target_channelid": null,
+        "twotargets": false,
         "targets": [],
         "optin_message_id": null,
         "wait": 10,
@@ -64,7 +66,9 @@ After inviting the bot to your Discord server, Use the following commands:
 3. Use `/set_target_channel` to select the channel the users will get moved to after someone joins a waiting user.
 4. In the channel you want the opt-in message to be, Use `/setup_message` to send a channel that members can use to opt in to notifications from the bot.
 
-Optionally, you can use `/set_waiting_time` to change the time that a person needs to wait before the bot sends a message to the opted-in users, the default is set to 10 seconds.
+Optional commands:
+1. you can use `/set_waiting_time` to change the time that a person needs to wait before the bot sends a message to the opted-in users, the default is set to 10 seconds.
+2. you can use `/set_second_target_channel` to set up a second target channel that the bot will move the waiting users into if the first target channel has people in it.
 
 ## FAQ
 1. I don't see any commands from the bot.
