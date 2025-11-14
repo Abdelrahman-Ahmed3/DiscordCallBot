@@ -73,7 +73,7 @@ def save_config(config_data):
     try:
         # Convert all IDs to strings before saving to JSONBin
         data_to_save = config_data.copy()
-        for key in ["waiting_channelid", "target_channelid", "optin_message_id", "server_id"]:
+        for key in ["waiting_channelid", "target_channelid", "optin_message_id", "server_id", "second_target_channelid"]:
             if data_to_save.get(key) is not None:
                 data_to_save[key] = str(data_to_save[key])
 
