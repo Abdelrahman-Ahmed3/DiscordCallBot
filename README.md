@@ -50,6 +50,7 @@ This is a bot designed to notify opted-in users when someone joins a specific â€
         "twotargets": false,
         "targets": [],
         "optin_message_id": null,
+        "optin_channel_id": null,
         "wait": 10,
         "server_id": null,
         "notifications_sent": null,

@@ -44,6 +44,7 @@ def load_config():
         "twotargets": False,
         "targets": [],
         "optin_message_id": None,
+        "optin_channel_id": None,
         "wait": 10,
         "server_id": None,
         "notifications_sent": None,
@@ -56,7 +57,7 @@ def load_config():
         data = response.json()['record']
 
         # Convert IDs from strings to ints for Python usage
-        for key in ["waiting_channelid", "target_channelid", "optin_message_id", "server_id", "second_target_channelid"]:
+        for key in ["waiting_channelid", "target_channelid", "optin_message_id", "server_id", "second_target_channelid", "optin_channel_id"]:
             if data.get(key):
                 data[key] = int(data[key])
 
@@ -206,6 +207,7 @@ async def setup_message(interaction: discord.Interaction): #/setup_message sends
     await msg.add_reaction("✅")
     await msg.add_reaction("❌")
     config["optin_message_id"] = msg.id
+    config["optin_channel_id"] = msg.channel.id
     save_config(config)
 
 @bot.tree.command(name="config", description="Sends the Config.JSON file to check", guild=GUILD_ID)
@@ -280,6 +282,14 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
                     await user.send(f"{len(config['targets'])} DMs sent to let members know you are waiting.")
                     config["notifications_sent"] += 1
                     save_config(config)
+            elif user_id not in config["targets"]: # this sends a message if the user that joins is not in the waiting list
+                user = await bot.fetch_user(user_id)
+                await user.send(
+                    f"No notifications sent, Because you are not in the waiting list found in https://discord.com/channels/{config['server_id']}/{config['optin_channel_id']}" +
+                    "\nPlease react with \"✅\" to the opt-in message to be able to use the waiting channel")
+                config["notifications_sent"] += 1
+                save_config(config)
+
         finally:
            pending_notifications.discard(user_id)
 
