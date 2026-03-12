@@ -36,6 +36,10 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 
 pending_notifications = set()
 
+def get_guild(): #function to the get the guild ID, used in slash commands to sync quickly
+    serverID =config.get("server_id")
+    return discord.Object(id=serverID) if serverID else None
+
 def load_config():
     default_config = {
         "waiting_channelid": None,
@@ -74,7 +78,7 @@ def save_config(config_data):
     try:
         # Convert all IDs to strings before saving to JSONBin
         data_to_save = config_data.copy()
-        for key in ["waiting_channelid", "target_channelid", "optin_message_id", "server_id", "second_target_channelid"]:
+        for key in ["waiting_channelid", "target_channelid", "optin_message_id", "server_id", "second_target_channelid", "optin_channel_id"]:
             if data_to_save.get(key) is not None:
                 data_to_save[key] = str(data_to_save[key])
 
@@ -88,7 +92,6 @@ def save_config(config_data):
 config = load_config()
 
 print("Loaded config from JSONBin")
-GUILD_ID = discord.Object(id = config.get("server_id"))
 @bot.event
 async def on_ready():
     print(f"✅ {bot.user} is online!")
@@ -101,7 +104,7 @@ async def on_ready():
         print(f"Error: {e}")
     bot.loop.create_task(update_status())
 
-@bot.tree.command(name="set_server", description="Sets the server ID", guild=GUILD_ID)
+@bot.tree.command(name="set_server", description="Sets the server ID", guild=get_guild())
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_server(interaction: discord.Interaction):
     try:
@@ -149,7 +152,7 @@ async def update_status():
         await asyncio.sleep(1200)
 
 
-@bot.tree.command(name="set_waiting_channel", description="Sets the waiting channel", guild=GUILD_ID)
+@bot.tree.command(name="set_waiting_channel", description="Sets the waiting channel", guild=get_guild())
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_waiting_channel(interaction: discord.Interaction, waitingchannel: discord.VoiceChannel):#function to add the waiting channel from discord
     try:
@@ -161,7 +164,7 @@ async def set_waiting_channel(interaction: discord.Interaction, waitingchannel: 
         await interaction.response.send_message("❌ Failed to update waiting channel.", ephemeral=True)
 
 
-@bot.tree.command(name="set_target_channel", description="Sets the target channel", guild=GUILD_ID)
+@bot.tree.command(name="set_target_channel", description="Sets the target channel", guild=get_guild())
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_target_channel(interaction: discord.Interaction, targetchannel: discord.VoiceChannel): #function to add the Target channel from discord
     try:
@@ -172,7 +175,7 @@ async def set_target_channel(interaction: discord.Interaction, targetchannel: di
         print(f"Error with target channel: {e}")
         await interaction.response.send_message("❌ Failed to update target channel.", ephemeral=True)
 
-@bot.tree.command(name="set_second_target_channel", description="Sets the second target channel", guild=GUILD_ID)
+@bot.tree.command(name="set_second_target_channel", description="Sets the second target channel", guild=get_guild())
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_second_target_channel(interaction: discord.Interaction, secondtargetchannel: discord.VoiceChannel): #function to add the second Target channel from discord
     try:
@@ -184,7 +187,7 @@ async def set_second_target_channel(interaction: discord.Interaction, secondtarg
         print(f"Error with target channel: {e}")
         await interaction.response.send_message("❌ Failed to update target channel.", ephemeral=True)
 
-@bot.tree.command(name="set_waiting_time", description="Sets the waiting time", guild=GUILD_ID)
+@bot.tree.command(name="set_waiting_time", description="Sets the waiting time", guild=get_guild())
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_waiting_time(interaction: discord.Interaction, waittime: int): #function to configure the waiting time from discord
     try:
@@ -195,7 +198,7 @@ async def set_waiting_time(interaction: discord.Interaction, waittime: int): #fu
         print(f"Error with waiting channel: {e}")
         await interaction.response.send_message("❌ Failed to update waiting time.", ephemeral=True)
 
-@bot.tree.command(name="setup_message", description="Sends the setup message", guild=GUILD_ID)
+@bot.tree.command(name="setup_message", description="Sends the setup message", guild=get_guild())
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def setup_message(interaction: discord.Interaction): #/setup_message sends an embed with two reactions to monitor in the next event for adding people to the .json file
     embed = discord.Embed(
@@ -210,7 +213,7 @@ async def setup_message(interaction: discord.Interaction): #/setup_message sends
     config["optin_channel_id"] = msg.channel.id
     save_config(config)
 
-@bot.tree.command(name="config", description="Sends the Config.JSON file to check", guild=GUILD_ID)
+@bot.tree.command(name="config", description="Sends the Config.JSON file to check", guild=get_guild())
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def cfg(interaction: discord.Interaction): #/config send a message with the full config
     config_dump = json.dumps(config, indent=4)
@@ -231,21 +234,21 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
                 try:
                     await waiting_member.move_to(second_target_channel)
                     config["members_moved"] += 1
-                    save_config(config)
                 except discord.Forbidden:
                     print("Missing Move Members permission")
                 except Exception as e:
                     print("Move error:", e)
+            save_config(config)
         else:
             for waiting_member in list(waiting_channel.members):
                 try:
                     await waiting_member.move_to(target_channel)
                     config["members_moved"] += 1
-                    save_config(config)
                 except discord.Forbidden:
                     print("Missing Move Members permission")
                 except Exception as e:
                     print("Move error:", e)
+            save_config(config)
 
     if after.channel and after.channel.id == config["waiting_channelid"] and before.channel != after.channel: #checks if the channel is the waiting channel and if it has any updates
         user_id = member.id
@@ -272,6 +275,7 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
                                 user = await bot.fetch_user(targetid)
                                 await user.send(f"<@{user_id}> is now waiting for you in <#{config['waiting_channelid']}>")
                                 config["notifications_sent"] += 1
+                                await asyncio.sleep(0.5) #waits to try to prevent API limits from discord
                              except discord.Forbidden:
                                  print(f"Could not DM {targetid}: DMs disabled or bot blocked")
                              except discord.NotFound:
