@@ -75,12 +75,12 @@ Optional commands:
 1. I don't see any commands from the bot.
 - This is because of how discord's slash commands work, they need to sync globally which causes a delay of about an hour or so, BUT I have implemented a sync function to force it to sync to your server quickly, to fix it, type !setserver in any text channel and then when the bot replies, restart it from [Render](https://dashboard.render.com/) and it should work.
 2. The bot isn't online when I just set it up.
--  This is most likely because you haven't set up the environment variables correctly, double check them and if they are correct, make sure that you set up Render correctly according to [the video provided above](https://youtu.be/HZis54wRF98?t=132).
-For any other issues, feel free to open an issue or contact send me a message on the support discord: [invite](https://discord.gg/9T9XrGgCFY)
+-  This is most likely because you haven't set up the environment variables correctly, double check them, and if they are correct, make sure that you set up Render correctly according to [the video provided above](https://youtu.be/HZis54wRF98?t=132).
+For any other issues, feel free to open an issue or send me a message in the support discord: [invite](https://discord.gg/9T9XrGgCFY)
 
 ## To Do
 - [x] Make a README
-- [ ] Use the render webserver to make a website to configure the bot.
+- [ ] Use the render web server to make a website to configure the bot.
 
 ## Contributing
 
