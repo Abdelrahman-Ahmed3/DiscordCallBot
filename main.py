@@ -8,6 +8,7 @@ import json
 import webserver
 import asyncio
 import requests
+import time
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
@@ -39,8 +40,9 @@ pending_notifications = set()
 def get_guild(): #function to the get the guild ID, used in slash commands to sync quickly
     serverID =config.get("server_id")
     return discord.Object(id=serverID) if serverID else None
-
-def load_config():
+loading_failed = False
+def load_config(retries = 5):
+    global loading_failed
     default_config = {
         "waiting_channelid": None,
         "target_channelid": None,
@@ -51,14 +53,19 @@ def load_config():
         "optin_channel_id": None,
         "wait": 10,
         "server_id": None,
-        "notifications_sent": None,
-        "members_moved": None
+        "notifications_sent": 0,
+        "members_moved": 0
     }
     try:
         # Fetch the latest version of the bin
         response = requests.get(f"{JSONBIN_URL}/latest", headers=HEADERS)
         response.raise_for_status()
         data = response.json()['record']
+
+        if data == default_config or not any(data.values()):
+            print("Bin is empty. Saving default config.")
+            save_config(default_config)
+            return default_config
 
         # Convert IDs from strings to ints for Python usage
         for key in ["waiting_channelid", "target_channelid", "optin_message_id", "server_id", "second_target_channelid", "optin_channel_id"]:
@@ -69,9 +76,12 @@ def load_config():
 
         return data
     except (requests.exceptions.RequestException, json.JSONDecodeError, KeyError) as e:
-        print(f"Failed to load config from jsonbin.io: {e}. Using default config.")
-        # If it fails (e.g., first run), save the default config to create the bin content
-        save_config(default_config)
+
+        if retries > 0:  # still have attempts left
+            print(f"Failed to load config: {e}. Retrying in 60s... ({retries} retries left)")
+            time.sleep(60)  # wait a minute for the network to stabilize
+            return load_config(retries - 1)  #call load_config again with one less try
+        loading_failed = True
         return default_config
 
 def save_config(config_data):
@@ -94,11 +104,31 @@ config = load_config()
 print("Loaded config from JSONBin")
 @bot.event
 async def on_ready():
+
     print(f"✅ {bot.user} is online!")
     try:
-        guild = discord.Object(id = config.get("server_id"))
-        synced = await bot.tree.sync(guild = guild)
-        print(f"synced {len(synced)} commands to {config.get('server_id')}")
+        server_id = config.get("server_id")
+        if server_id is not None:
+            guild = discord.Object(id=server_id)
+            synced = await bot.tree.sync(guild=guild)
+            print(f"synced {len(synced)} commands to {server_id}")
+        else:
+            print("⚠️ No server_id found. Skipping slash command sync.")
+
+        global loading_failed
+        if loading_failed:
+            if bot.guilds:
+                guild = bot.guilds[0]
+                channel = next(
+                    (c for c in guild.text_channels if c.permissions_for(guild.me).send_messages),
+                    None #default if nothing is found
+                )
+            if bot.guilds and channel:
+                admins = [m.mention for m in guild.members if m.guild_permissions.administrator and not m.bot]
+                admin_mentions = " ".join(admins)
+                await channel.send(f"{admin_mentions} \n🚨 Failed to load config from JSONBin after all retries! Bot is not working now, check JSONBin and redeploy.")
+                loading_failed = False
+
 
     except Exception as e:
         print(f"Error: {e}")
