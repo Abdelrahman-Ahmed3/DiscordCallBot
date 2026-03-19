@@ -313,7 +313,7 @@ async def on_voice_state_update(member, before, after): #checks if any member jo
                              except discord.HTTPException as e:
                                  print(f"Failed to send DM to {targetid}: {e}")
                     user = await bot.fetch_user(user_id)
-                    await user.send(f"{len(config['targets'])} DMs sent to let members know you are waiting.")
+                    await user.send(f"{len(config['targets']) - 1} DMs sent to let members know you are waiting.")
                     config["notifications_sent"] += 1
                     save_config(config)
             elif user_id not in config["targets"]: # this sends a message if the user that joins is not in the waiting list
